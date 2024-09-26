@@ -11,7 +11,7 @@ protected:
 	HierarchicalStateMachine* parent;
 
 public:
-	State(Action* stateA, Action* entryA, Action* exitA, std::vector<Transition*> transitionsP, HierarchicalStateMachine* parentP):
+	State(Action* stateA, Action* entryA, Action* exitA, std::vector<Transition*> transitionsP, HierarchicalStateMachine* parentP = nullptr):
 		action(stateA), entryAction(entryA), exitAction(exitA), trans(transitionsP), parent(parentP)
 	{}
 
@@ -19,7 +19,7 @@ public:
 	HierarchicalStateMachine* getParent () { return parent; }
 
 	void addParent(HierarchicalStateMachine* parentP) { parent = parentP; }
-
+	//UpdateResult update(UpdateResult* ) override {}
 	Action* getAction() { return action; }
 	Action* getEntryAction() { return entryAction; }
 	Action* getExitAction() { return exitAction; }

@@ -12,3 +12,11 @@ void UpdateResult::operator+=(Actions* myActions)
 		actions.push_back(action);
 	}
 }
+
+void UpdateResult::operator=(UpdateResult res)
+{
+	trans = res.trans;
+	lvl = res.lvl;
+	
+	this->operator+=(&res.actions);
+}

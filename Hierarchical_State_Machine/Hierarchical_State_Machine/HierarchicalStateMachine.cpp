@@ -11,87 +11,125 @@ States* HierarchicalStateMachine::getStates()
 
 UpdateResult HierarchicalStateMachine::update()
 {
-    if (!currentState)
-    {
-        currentState = initialState;
-        UpdateResult result;
-        result += currentState->getEntryAction();
+	UpdateResult result;
 
-        return result;
-    }
+	if (!currentState)
+	{
+		currentState = initialState;
+		result += currentState->getEntryAction();
+	}
 
-    Transition* triggeredTransition = nullptr;
+	Transition* triggeredTransition = nullptr;
 
-    for (Transition* transP : currentState->getTransitions())
-    {
-        if (transP->isTriggered())
-        {
-            triggeredTransition = transP;
-            break;
-        }
-    }
+	for (Transition* transP : currentState->getTransitions())
+	{
+		if (transP->isTriggered())
+		{
+			triggeredTransition = transP;
+			break;
+		}
+	}
 
-    UpdateResult result;
+	if (triggeredTransition)
+	{
+		result.trans = triggeredTransition;
+		result.lvl = triggeredTransition->getLevel();
+	}
+	else
+	{
+		result = currentState->update();
+	}
 
-    if (!triggeredTransition)
-    {
-        result = currentState->update();
-        result += getAction();
-    }
-    else
-    {
-        result.trans = triggeredTransition;
-        result.lvl = triggeredTransition->getLevel();
+	if (result.trans)
+	{
+		State* targetState = nullptr;
 
-        State* targetState;
+		if (result.lvl == 0)
+		{
+			targetState = result.trans->getTargetState();
+			result += currentState->getExitAction();
+			result += result.trans->getAction();
+			result += targetState->getEntryAction();
 
-        if (result.lvl == 0)
-        {
-            targetState = result.trans->getTargetState();
-            result += currentState->getExitAction();
-            result += currentState->getAction();
-            result += targetState->getEntryAction();
+			currentState = targetState;
 
-            currentState = targetState;
+			result += getAction();
 
-            result += getAction();
+			result.trans = nullptr;
+		}
+		else if (result.lvl > 0)
+		{
+			result += currentState->getExitAction();
+			currentState = nullptr;
+			result.lvl -= 1;
+		}
+		else
+		{
+			targetState = result.trans->getTargetState();
+			HierarchicalStateMachine* targetMachine = targetState->getParent();
+			result += targetMachine->updateDown(targetState, -result.lvl, result.trans);
+			result.trans = nullptr;
+		}
+	}
+	else
+	{
+		result += getAction();
+	}
 
-            result.trans = nullptr;
-        }
-        else if (result.lvl > 0)
-        {
-            result += currentState->getExitAction();
-            currentState = nullptr;
-            result.lvl -= 1;
-        }
-        else
-        {
-            targetState = result.trans->getTargetState();
-            HierarchicalStateMachine* targetMachine = targetState->getParent();
-            result += targetMachine->updateDown(targetState, -result.lvl);
-            result.trans = nullptr;
-        }
-    }
-    return result;
+	return result;
 }
 
 
 
-Actions* HierarchicalStateMachine::updateDown(State* stateP, Level myLvl)
+Actions* HierarchicalStateMachine::updateDown(State* stateP, Level myLvl, Transition* transP)
 {
     Actions* returnedActions = new Actions{};
-
+	
     if (myLvl > 0)
     {
-        returnedActions = updateDown(stateP, myLvl - 1);
+        returnedActions = getParent()->updateDown(this->getSelfState(), myLvl - 1, transP);
+		
     }
     
     if (currentState)
     {
         returnedActions->push_back(currentState->getExitAction());
-        currentState = stateP;
-        returnedActions->push_back(stateP->getEntryAction());
+		int it = 0;
+		if (search(transP->getAction(), *returnedActions, it))
+		{
+			auto ite = returnedActions->begin() + it;
+			returnedActions->erase(ite);
+			returnedActions->push_back(transP->getAction());
+		}
+		else
+		{
+			returnedActions->push_back(transP->getAction());
+		}
     }
 
+	currentState = stateP;
+    returnedActions->push_back(stateP->getEntryAction());
+
     return returnedActions;
+}
+
+Action* HierarchicalStateMachine::getAction()
+{
+    if (currentState) return currentState->getAction();
+    else return initialState->getAction();
+}
+
+bool HierarchicalStateMachine::search(Action* val, Actions myActions, int& it)
+{
+	bool res = false;
+	for (Action* act : myActions)
+	{
+		if (act == val)
+		{
+			res = true;
+			break;
+		}
+		it++;
+	}
+	return res;
 }

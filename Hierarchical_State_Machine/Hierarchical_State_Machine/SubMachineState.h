@@ -11,12 +11,14 @@ public:
 					Action* exitA,
 					std::vector<Transition*> transitionsP,
 					HierarchicalStateMachine* parentP, 
-					State* optionalCurrentStateP = nullptr) : State(stateA,entryA,exitA,transitionsP, parent),
+					State* optionalCurrentStateP = nullptr) : State(stateA,entryA,exitA,transitionsP, parentP),
 															  HierarchicalStateMachine(initStateP, optionalCurrentStateP)
-	{}
+	{
+		selfStateChoice(this);
+	}
 
 	Action* getAction() { return State::getAction(); }
-	UpdateResult update() { return HierarchicalStateMachine::update(); }
+	UpdateResult update() override { return HierarchicalStateMachine::update(); }
 	States* getStates()
 	{
 		if (currentState)
